@@ -1,5 +1,7 @@
 #!/bin/bash
 #
+# Author: Riley Shott (https://github.com/Ginja/Admin_Scripts)
+#
 # margarita        Startup script for the maragita webinterface
 #
 # chkconfig: 356 90 20
