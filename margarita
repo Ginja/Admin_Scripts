@@ -55,9 +55,21 @@ stop()
  else
  	failure
  	RETVAL=1
- 	echo "Maragarita wasn't running: "
+ 	echo "Margarita wasn't running: "
  	return $RETVAL
  fi
+}
+
+status()
+{
+  if [ $PID ]; then
+  	echo "Margarita is running"
+	exit 0
+
+  else
+	echo "Margarita isn't running"
+  	exit 1
+  fi
 }
  
 # Punch it
@@ -72,8 +84,11 @@ restart)
   stop
   start
 ;;
+status)
+  status
+;;
 *)
-  echo $"Usage: $0 {start|stop|restart}"
+  echo $"Usage: $0 {start|stop|restart|status}"
   exit 1
 esac
  
