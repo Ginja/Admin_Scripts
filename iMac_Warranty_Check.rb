@@ -14,6 +14,8 @@
 # => 	Column A should be the serials, and column B can be anything but it should be identifiable (EX: hostname)
 # => If you're using a TXT file:
 # =>  	Ensure that it only contains one column containing the serial numbers
+# => Apple Support page - http://www.apple.com/support/imac-harddrive/
+# => Run from command line: ./iMac_Warranty_Check.rb /path/to/file
 #
 ############################################################
 
