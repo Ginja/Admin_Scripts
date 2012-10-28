@@ -15,7 +15,7 @@
 # => If you're using a TXT file:
 # =>  	Ensure that it only contains one column containing the serial numbers
 # => Apple Support page - http://www.apple.com/support/imac-harddrive/
-# => Run from command line: ./iMac_Warranty_Check.rb /path/to/file
+# => Run from the command line: ./iMac_Warranty_Check.rb /path/to/file
 #
 ############################################################
 
@@ -33,7 +33,7 @@ rescue LoadError => error
 end
 
 ############################################################
-# Class (overiding init method)
+# CLASSES (overriding init method)
 # Purpose: Prevents "warning: peer certificate won't be verified in this SSL session" from displaying
 ############################################################
 
@@ -90,7 +90,7 @@ end
 # MAIN
 ############################################################
 
-raise "Usage: #{$PROGRAM_NAME} [ Excel Sheet | TXT File ]" unless __FILE__ == $PROGRAM_NAME and !ARGV.length.eql?(0)
+raise "Usage: #{$PROGRAM_NAME} [ Excel Sheet | TXT File ]" unless __FILE__ == $PROGRAM_NAME and !ARGV.empty?
 raise "Usage: #{$PROGRAM_NAME} [ Excel Sheet | TXT File ] - More than one argument was passed" if ARGV.length > 1
 
 if ARGV[0].end_with?('xlsx') or ARGV[0].end_with?('xls')
@@ -98,14 +98,14 @@ if ARGV[0].end_with?('xlsx') or ARGV[0].end_with?('xls')
 	puts "Ignore the 'Faraday' message"
 	puts "Starting Check..."
 	computers.each do |serial,host|
-		puts "#{serial} belonging to #{host} needs an RMA" if rma_needed?(serial)
+		puts "#{serial} belonging to #{host} needs an RMA" if rma_needed?(serial.gsub(/\s+/, ""))
 	end 
 else
 	computers = txt_file_to_array(ARGV[0])
 	puts "Starting Check..."
 	computers.each {|serial|
-		puts "#{serial} needs an RMA" if rma_needed?(serial)
+		puts "#{serial} needs an RMA" if rma_needed?(serial.gsub(/\s+/, ""))
 	}
 end
 
-puts "Finished Check..."
+puts "Finished Checking..."
