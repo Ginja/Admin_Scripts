@@ -77,15 +77,20 @@ def txt_file_to_array(file_path)
 end
 
 def rma_needed?(serial)
-	uri = URI.parse("https://supportform.apple.com/201107/SerialNumberEligibilityAction.do?cb=iMacHDCheck.response&sn=#{serial}")
-	http = Net::HTTP.new(uri.host, uri.port)
-	http.use_ssl = true
-	res = http.request_get(uri.path + '?' + uri.query)
-	info = res.body.split('"')
-	return true if info[7].eql?('Valid iMac SN has Seagate HDD - covered by program')
-	return false
+	begin
+		uri = URI.parse("https://supportform.apple.com/201107/SerialNumberEligibilityAction.do?cb=iMacHDCheck.response&sn=#{serial}")
+		http = Net::HTTP.new(uri.host, uri.port)
+		http.use_ssl = true
+		# Added to account for possible timeout issues when web server is under heavy load
+		http.read_timeout = 220
+		res = http.request_get(uri.path + '?' + uri.query)
+		info = res.body.split('"')
+		return true if info[7].eql?('Valid iMac SN has Seagate HDD - covered by program')
+		return false
+	rescue Timeout::Error
+		return 1
+	end
 end
-
 ############################################################
 # MAIN
 ############################################################
@@ -98,13 +103,23 @@ if ARGV[0].end_with?('xlsx') or ARGV[0].end_with?('xls')
 	puts "Ignore the 'Faraday' message"
 	puts "Starting Check..."
 	computers.each do |serial,host|
-		puts "#{serial} belonging to #{host} needs an RMA" if rma_needed?(serial.gsub(/\s+/, ""))
+		rma_value ||= rma_needed?(serial.gsub(/\s+/, ""))
+		if rma_value == true
+			puts "#{serial} belonging to #{host} needs an RMA"
+		elsif rma_value == 1
+			puts "#{serial} belonging to #{host} was not checked due to an http timeout"
+		end	
 	end 
 else
 	computers = txt_file_to_array(ARGV[0])
 	puts "Starting Check..."
 	computers.each {|serial|
-		puts "#{serial} needs an RMA" if rma_needed?(serial.gsub(/\s+/, ""))
+		rma_value ||= rma_needed?(serial.gsub(/\s+/, ""))
+		if rma_value == true
+			puts "#{serial} needs an RMA"
+		elsif rma_value == 1
+			puts "#{serial} was not checked due to an http timeout"
+		end
 	}
 end
 
