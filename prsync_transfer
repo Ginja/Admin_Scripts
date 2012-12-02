@@ -24,26 +24,26 @@ U_TO_Z = ('u'..'z').to_a
 
 def start_parallel_rsync(group)
   group.each {|i| fork { system("/usr/bin/rsync" \
-				" -#{ARGV[3]}" \
+				" -#{ARGV[0]}" \
 				" --include='#{i}*'" \
 				" --include='#{i.upcase}*'" \
 				" --exclude='/*'" \
-				" #{ARGV[0].chomp('/')}/" \
-				" #{ARGV[1].chomp('/')}" \
-				" 1> #{ARGV[2].chomp('/')}/#{i}.log" \
-				" 2> #{ARGV[2].chomp('/')}/#{i}_error.log") } } 
+				" #{ARGV[1].chomp('/')}/" \
+				" #{ARGV[2].chomp('/')}" \
+				" 1> #{ARGV[3].chomp('/')}/#{i}.log" \
+				" 2> #{ARGV[3].chomp('/')}/#{i}_error.log") } } 
   return Process.waitall
 end
 
 def non_character_rsync
   result = system("/usr/bin/rsync" \
-	 " -#{ARGV[3]}" \
+	 " -#{ARGV[0]}" \
 	 " --include='[^a-z]'" \
 	 " --exclude='/*'" \
-	 " #{ARGV[0].chomp('/')}/" \
-	 " #{ARGV[1].chomp('/')}" \
-	 " 1> #{ARGV[2].chomp('/')}/non_character.log" \
-	 " 2> #{ARGV[2].chomp('/')}/non_character_error.log")
+	 " #{ARGV[1].chomp('/')}/" \
+	 " #{ARGV[2].chomp('/')}" \
+	 " 1> #{ARGV[3].chomp('/')}/non_character.log" \
+	 " 2> #{ARGV[3].chomp('/')}/non_character_error.log")
   if result
     puts "The non-character transfers completed successfully"
   else
@@ -53,13 +53,13 @@ end
 
 def leading_whitespace_rsync
   result = system("/usr/bin/rsync" \
-         " -#{ARGV[3]}" \
+         " -#{ARGV[0]}" \
 	 " --include=' *'" \
          " --exclude='/*'" \
-         " #{ARGV[0].chomp('/')}/" \
-         " #{ARGV[1].chomp('/')}" \
-         " 1> #{ARGV[2].chomp('/')}/leading_whitespace.log" \
-         " 2> #{ARGV[2].chomp('/')}/leading_whitespace_error.log")
+         " #{ARGV[1].chomp('/')}/" \
+         " #{ARGV[2].chomp('/')}" \
+         " 1> #{ARGV[3].chomp('/')}/leading_whitespace.log" \
+         " 2> #{ARGV[3].chomp('/')}/leading_whitespace_error.log")
   if result
     puts "The leading whitespace transfers completed successfully"
   else
@@ -69,13 +69,13 @@ end
 
 def hidden_folders_rsync
   result = system("/usr/bin/rsync" \
-         " -#{ARGV[3]}" \
+         " -#{ARGV[0]}" \
          " --include='.*'" \
          " --exclude='/*'" \
-         " #{ARGV[0].chomp('/')}/" \
-         " #{ARGV[1].chomp('/')}" \
-         " 1> #{ARGV[2].chomp('/')}/leading_whitespace.log" \
-         " 2> #{ARGV[2].chomp('/')}/leading_whitespace_error.log")
+         " #{ARGV[1].chomp('/')}/" \
+         " #{ARGV[2].chomp('/')}" \
+         " 1> #{ARGV[3].chomp('/')}/leading_whitespace.log" \
+         " 2> #{ARGV[3].chomp('/')}/leading_whitespace_error.log")
   if result
     puts "The hidden folders transfer completed successfully"
   else
@@ -104,26 +104,26 @@ if ARGV[0].eql?('-h') or ARGV[0].eql?('--help')
   puts "This utility will rsync all the contents of one folder into another but in parallel.\n" \
        "It splits up the a to z transfers into batches of 4 (except from u to z). All other transfers are done in serial.\n" \
        "The order in which it syncs files and folders is:\n" \
-       "  a-z and A-Z\n" \
-       "  non-character\n" \
-       "  leading whitespace\n" \
-       "  hidden files and folders\n" \
+       "1.  a-z and A-Z\n" \
+       "2.  non-character\n" \
+       "3.  leading whitespace\n" \
+       "4.  hidden files and folders\n" \
        "You will receive a report at the end of the command letting you know which transfers experienced errors.\n" \
-       "Usage: #{__FILE__} <source> <target> <log_location> <rsync_options>\n" \
-       "Version 1.0"
+       "Usage: #{__FILE__} <rsync_options> <source> <target> <log_location>\n" \
+       "Version 1.01"
   exit 0
 end
 
 # Fail early, fail hard
 begin
-  message = "Usage: #{__FILE__} <source> <target> <log_location> <rsync_options>" unless ARGV.length == 4
-  message = "Source destination does not exist" unless File.exists?(ARGV[0])
-  message = "Target destination does not exist" unless File.exists?(ARGV[1])
-  message = "Log location does not exist" unless File.exists?(ARGV[2])
-  message = "No rsync options were given (EX: avP)" if ARGV[3].empty?
-  message = "Source destination must be a folder" unless File.directory?(ARGV[0])
-  message = "Target desintation must be a folder" unless File.directory?(ARGV[1])
-  message = "Log location must be a folder" unless File.directory?(ARGV[2])
+  message = "Usage: #{__FILE__} <rsync_options> <source> <target> <log_location>" unless ARGV.length == 4
+  message = "No rsync options were given (EX: avP)" if ARGV[0].empty?
+  message = "Source destination does not exist" unless File.exists?(ARGV[1])
+  message = "Target destination does not exist" unless File.exists?(ARGV[2])
+  message = "Log location does not exist" unless File.exists?(ARGV[3])
+  message = "Source destination must be a folder" unless File.directory?(ARGV[1])
+  message = "Target desintation must be a folder" unless File.directory?(ARGV[2])
+  message = "Log location must be a folder" unless File.directory?(ARGV[3])
   raise unless message.nil?
 rescue
   puts message 
