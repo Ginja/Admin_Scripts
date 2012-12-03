@@ -19,31 +19,38 @@ Q_TO_T = ('q'...'u').to_a
 U_TO_Z = ('u'..'z').to_a
 
 ############################################################
+# Global - Needed for keeping track of child processes
+############################################################
+
+$children = Array.new
+
+############################################################
 # METHODS
 ############################################################
 
 def start_parallel_rsync(group)
-  group.each {|i| fork { system("/usr/bin/rsync" \
-				" -#{ARGV[0]}" \
-				" --include='#{i}*'" \
-				" --include='#{i.upcase}*'" \
-				" --exclude='/*'" \
-				" #{ARGV[1].chomp('/')}/" \
-				" #{ARGV[2].chomp('/')}" \
-				" 1> #{ARGV[3].chomp('/')}/#{i}.log" \
-				" 2> #{ARGV[3].chomp('/')}/#{i}_error.log") } } 
-  return Process.waitall
+  group.each { |i| $children << fork { system("/usr/bin/rsync" \
+                                              " #{ARGV[0]}" \
+				                                      " --include='#{i}*'" \
+				                                      " --include='#{i.upcase}*'" \
+				                                      " --exclude='/*'" \
+				                                      " #{ARGV[1].chomp('/')}/" \
+				                                      " #{ARGV[2].chomp('/')}" \
+				                                      " 1> #{ARGV[3].chomp('/')}/#{i}.log" \
+				                                      " 2> #{ARGV[3].chomp('/')}/#{i}_error.log") 
+                                        check_for_errors($?, i) } }
+  Process.waitall
 end
 
-def non_character_rsync
+def non_alpha_character_rsync
   result = system("/usr/bin/rsync" \
-	 " -#{ARGV[0]}" \
-	 " --include='[^a-z]'" \
-	 " --exclude='/*'" \
-	 " #{ARGV[1].chomp('/')}/" \
-	 " #{ARGV[2].chomp('/')}" \
-	 " 1> #{ARGV[3].chomp('/')}/non_character.log" \
-	 " 2> #{ARGV[3].chomp('/')}/non_character_error.log")
+                  " #{ARGV[0]}" \
+                  " --include='[^a-z]'" \
+                  " --exclude='/*'" \
+                  " #{ARGV[1].chomp('/')}/" \
+                  " #{ARGV[2].chomp('/')}" \
+                  " 1> #{ARGV[3].chomp('/')}/non_character.log" \
+                  " 2> #{ARGV[3].chomp('/')}/non_character_error.log")
   if result
     puts "The non-character transfers completed successfully"
   else
@@ -53,13 +60,13 @@ end
 
 def leading_whitespace_rsync
   result = system("/usr/bin/rsync" \
-         " -#{ARGV[0]}" \
-	 " --include=' *'" \
-         " --exclude='/*'" \
-         " #{ARGV[1].chomp('/')}/" \
-         " #{ARGV[2].chomp('/')}" \
-         " 1> #{ARGV[3].chomp('/')}/leading_whitespace.log" \
-         " 2> #{ARGV[3].chomp('/')}/leading_whitespace_error.log")
+                  " #{ARGV[0]}" \
+                  " --include=' *'" \
+                  " --exclude='/*'" \
+                  " #{ARGV[1].chomp('/')}/" \
+                  " #{ARGV[2].chomp('/')}" \
+                  " 1> #{ARGV[3].chomp('/')}/leading_whitespace.log" \
+                  " 2> #{ARGV[3].chomp('/')}/leading_whitespace_error.log")
   if result
     puts "The leading whitespace transfers completed successfully"
   else
@@ -69,13 +76,13 @@ end
 
 def hidden_folders_rsync
   result = system("/usr/bin/rsync" \
-         " -#{ARGV[0]}" \
-         " --include='.*'" \
-         " --exclude='/*'" \
-         " #{ARGV[1].chomp('/')}/" \
-         " #{ARGV[2].chomp('/')}" \
-         " 1> #{ARGV[3].chomp('/')}/leading_whitespace.log" \
-         " 2> #{ARGV[3].chomp('/')}/leading_whitespace_error.log")
+                  " #{ARGV[0]}" \
+                  " --include='.*'" \
+                  " --exclude='/*'" \
+                  " #{ARGV[1].chomp('/')}/" \
+                  " #{ARGV[2].chomp('/')}" \
+                  " 1> #{ARGV[3].chomp('/')}/leading_whitespace.log" \
+                  " 2> #{ARGV[3].chomp('/')}/leading_whitespace_error.log")
   if result
     puts "The hidden folders transfer completed successfully"
   else
@@ -83,40 +90,49 @@ def hidden_folders_rsync
   end
 end
 
-def check_for_errors(array)
-  alphabet = ('a'..'z').to_a
-  array = array.zip(alphabet)
-  array.each {|z|
-    if z[0] != 0
-      puts "The '#{z[1]}*' transfers did not exit with 0 - #{z[0]} - check its logs"
+def check_for_errors(exitcode, letter)
+    unless exitcode != 0
+      puts "The '#{letter}*' transfers completed successfully"
     else
-      puts "The '#{z[1]}*' transfers completed successfully"
+      puts "The '#{letter}*' & '#{letter.upcase}*' transfers did not exit with 0 - #{exitcode} - check its logs"
     end
-  }
 end
 
+def ctrl_c
+  puts " ctrl+c caught"
+  $children.each { |c| puts "Killing child process #{c}" 
+                       Process.kill('KILL', c) }
+  exit 1
+end
 
 ############################################################
 # MAIN
 ############################################################
 
 if ARGV[0].eql?('-h') or ARGV[0].eql?('--help')
-  puts "This utility will rsync all the contents of one folder into another but in parallel.\n" \
-       "It splits up the a to z transfers into batches of 4 (except from u to z). All other transfers are done in serial.\n" \
-       "The order in which it syncs files and folders is:\n" \
-       "1.  a-z and A-Z\n" \
-       "2.  non-character\n" \
-       "3.  leading whitespace\n" \
-       "4.  hidden files and folders\n" \
-       "You will receive a report at the end of the command letting you know which transfers experienced errors.\n" \
-       "Usage: #{__FILE__} <rsync_options> <source> <target> <log_location>\n" \
-       "Version 1.01"
+  puts "Version 1.20\n" \
+       "Author: Riley Shott (rshott@sfu.ca)\n" \
+       "https://github.com/Ginja/Admin_Scripts/blob/master/prsync_transfer\n\n" \
+       "Capabilities: This utility will rsync all the contents of one folder into another but perform some of the transfer in parallel.\n" \
+       "It splits up the aA-zZ transfers into batches of 4 (except from u to z). All other transfers are done in serial.\n" \
+       "You will receive a report at the end of the command letting you know which transfers experienced errors.\n\n" \
+       "Job options & order:\n" \
+       "  1.  alpha characters\n" \
+       "  2.  non-alpha-characters\n" \
+       "  3.  files and folders with a leading whitespace\n" \
+       "  4.  hidden files and folders\n\n" \
+       "Usage: #{__FILE__} <-rsync_options> <source> <target> <log_location> (jobs_to_run EX: 1-3)\n" \
+       "By default, this utility will run jobs 1-4. You can specify the transfers you want to do:\n" \
+       "  ./prsync_transfer -avP ~/source ~/target ~/log 3-4\n" \
+       "  ./prsync_transfer -avP ~/source ~/target ~/log 1-2\n" \
+       "You can also specify your own includes and excludes (mind the quotes):\n" \
+       "  ./prsync_transfer \"-avP --exclude=Caches*\" ~/source ~/target ~/log 1\n"
   exit 0
 end
 
 # Fail early, fail hard
 begin
-  message = "Usage: #{__FILE__} <rsync_options> <source> <target> <log_location>" unless ARGV.length == 4
+  message = "Usage: #{__FILE__} <-rsync_options> <source> <target> <log_location> (jobs_to_run EX: 1-3)" unless ARGV.length == 4 or ARGV.length == 5 
   message = "No rsync options were given (EX: avP)" if ARGV[0].empty?
   message = "Source destination does not exist" unless File.exists?(ARGV[1])
   message = "Target destination does not exist" unless File.exists?(ARGV[2])
@@ -130,15 +146,39 @@ rescue
   exit 1
 end
 
-results = Array.new
-start_parallel_rsync(A_TO_D).each {|x| results << x[1].exitstatus}
-start_parallel_rsync(E_TO_H).each {|x| results << x[1].exitstatus}
-start_parallel_rsync(I_TO_L).each {|x| results << x[1].exitstatus}
-start_parallel_rsync(M_TO_P).each {|x| results << x[1].exitstatus}
-start_parallel_rsync(Q_TO_T).each {|x| results << x[1].exitstatus}
-start_parallel_rsync(U_TO_Z).each {|x| results << x[1].exitstatus}
-non_character_rsync
-leading_whitespace_rsync
-hidden_folders_rsync
+unless ARGV.length == 4
+  if ARGV[4].to_s.length == 1
+    rsyncs_to_run = ARGV[4] 
+  else
+    rsyncs_to_run = ARGV[4].gsub(/[-]/,' ').split
+    rsyncs_to_run = (rsyncs_to_run[0]..rsyncs_to_run[1]).to_a
+  end
+else
+  rsyncs_to_run = ('1'..'4').to_a
+end
 
-check_for_errors(results)
+rsyncs_to_run.each {|n|
+  case n
+  when '1'
+    trap("SIGINT") { ctrl_c }
+    start_parallel_rsync(A_TO_D)
+    start_parallel_rsync(E_TO_H)
+    start_parallel_rsync(I_TO_L)
+    start_parallel_rsync(M_TO_P)
+    start_parallel_rsync(Q_TO_T)
+    start_parallel_rsync(U_TO_Z)
+  when '2'
+    non_alpha_character_rsync
+  when '3'
+    leading_whitespace_rsync
+  when '4'
+    hidden_folders_rsync
+  else
+    puts "Did not recognize the following job option - #{n}\n" \
+    "Job options:\n" \
+       "  1.  alpha characters\n" \
+       "  2.  non-alpha-characters\n" \
+       "  3.  files and folders with a leading whitespace\n" \
+       "  4.  hidden files and folders\n"
+  end
+}
