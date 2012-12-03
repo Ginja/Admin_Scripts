@@ -31,13 +31,13 @@ $children = Array.new
 def start_parallel_rsync(group)
   group.each { |i| $children << fork { system("/usr/bin/rsync" \
                                               " #{ARGV[0]}" \
-				                                      " --include='#{i}*'" \
-				                                      " --include='#{i.upcase}*'" \
-				                                      " --exclude='/*'" \
-				                                      " #{ARGV[1].chomp('/')}/" \
-				                                      " #{ARGV[2].chomp('/')}" \
-				                                      " 1> #{ARGV[3].chomp('/')}/#{i}.log" \
-				                                      " 2> #{ARGV[3].chomp('/')}/#{i}_error.log") 
+                                              " --include='#{i}*'" \
+                                              " --include='#{i.upcase}*'" \
+                                              " --exclude='/*'" \
+                                              " #{ARGV[1].chomp('/')}/" \
+                                              " #{ARGV[2].chomp('/')}" \
+                                              " 1> #{ARGV[3].chomp('/')}/#{i}.log" \
+                                              " 2> #{ARGV[3].chomp('/')}/#{i}_error.log") 
                                         check_for_errors($?, i) } }
   Process.waitall
 end
