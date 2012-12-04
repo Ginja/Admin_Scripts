@@ -92,7 +92,7 @@ end
 
 def check_for_errors(exitcode, letter)
     unless exitcode != 0
-      puts "The '#{letter}*' transfers completed successfully"
+      puts "The '#{letter}*' & '#{letter.upcase}*' transfers completed successfully"
     else
       puts "The '#{letter}*' & '#{letter.upcase}*' transfers did not exit with 0 - #{exitcode} - check its logs"
     end
