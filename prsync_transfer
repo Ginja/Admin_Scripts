@@ -98,10 +98,28 @@ def check_for_errors(exitcode, letter)
     end
 end
 
+def pid_exists?(pid)
+  begin
+    Process.kill(0, pid)
+    return true
+  rescue Errno::ESRCH
+    puts "Appears that #{pid} is no longer running"
+    return false
+  rescue Errno::EPERM
+    puts "No permission to query #{pid}"
+    return false
+  rescue
+    puts "Unable to determine status for #{pid}"
+    return false
+  end
+end
+
 def ctrl_c
   puts " ctrl+c caught"
-  $children.each { |c| puts "Killing child process #{c}" 
-                       Process.kill('KILL', c) }
+  $children.each { |c| if pid_exists?(c)
+                         puts "Killing child process #{c}" 
+                         Process.kill('KILL', c) 
+                       end }
   exit 1
 end
 
@@ -132,17 +150,18 @@ end
 
 # Fail early, fail hard
 begin
-  message = "Usage: #{__FILE__} <-rsync_options> <source> <target> <log_location> (jobs_to_run EX: 1-3)" unless ARGV.length == 4 or ARGV.length == 5 
-  message = "No rsync options were given (EX: avP)" if ARGV[0].empty?
-  message = "Source destination does not exist" unless File.exists?(ARGV[1])
-  message = "Target destination does not exist" unless File.exists?(ARGV[2])
-  message = "Log location does not exist" unless File.exists?(ARGV[3])
-  message = "Source destination must be a folder" unless File.directory?(ARGV[1])
-  message = "Target desintation must be a folder" unless File.directory?(ARGV[2])
-  message = "Log location must be a folder" unless File.directory?(ARGV[3])
-  raise unless message.nil?
+  message = Array.new
+  message << "Usage: #{__FILE__} <-rsync_options> <source> <target> <log_location> (jobs_to_run EX: 1-3)" unless ARGV.length == 4 or ARGV.length == 5 
+  message << "Error: Could not find rsync at /usr/bin/rsync" unless File.exists?('/usr/bin/rsync')
+  message << "Error: Source destination does not exist" unless File.exists?(ARGV[1])
+  message << "Error: Target destination does not exist" unless File.exists?(ARGV[2])
+  message << "Error: Log location does not exist" unless File.exists?(ARGV[3])
+  message << "Error: Source destination must be a folder" unless File.directory?(ARGV[1])
+  message << "Error: Target desintation must be a folder" unless File.directory?(ARGV[2])
+  message << "Error: Log location must be a folder" unless File.directory?(ARGV[3])
+  raise unless message.empty?
 rescue
-  puts message 
+  message.each {|m| puts m} 
   exit 1
 end
 
