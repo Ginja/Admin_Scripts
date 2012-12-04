@@ -128,7 +128,7 @@ end
 ############################################################
 
 if ARGV[0].eql?('-h') or ARGV[0].eql?('--help')
-  puts "Version 1.20\n" \
+  puts "Version 1.21\n" \
        "Author: Riley Shott (rshott@sfu.ca)\n" \
        "https://github.com/Ginja/Admin_Scripts/blob/master/prsync_transfer\n\n" \
        "Capabilities: This utility will rsync all the contents of one folder into another but perform some of the transfer in parallel.\n" \
