@@ -1,0 +1,22 @@
+
+chrome_auto-updates.rb
+	This script enables system wide automatic updates for Google Chrome. It should work for Chrome versions 18 and later.
+
+iMac_Warranty_Check.rb
+	Script that checks a batch of iMacs (txt, or excel sheet) for their eligibility into the iMac Seagate HDD Recall.
+	http://www.apple.com/support/imac-harddrive/
+
+margarita
+	A startup script for the margarita webinterface for RHEL flavours. When put into /etc/init.d it can be configured with chkconfig.
+
+network_avail.sh
+	A simple bash script that checks if a network connection is available by looking to see if there are any non-loopback interfaces. 
+	Useful to use when another script needs an active connection to work.
+
+prsync_transfer
+	A rsync wrapper that will transfer all alpha characters from the source folder in parallel (batches of 4).
+	It will transfer everything else serially:
+		non-alpha characters, 
+		files/folders with leading whitespaces, 
+		and files/folders that are hidden
+	For more information see: http://rileyshott.wordpress.com/2012/12/03/maclinux-parallel-rsync-utility
