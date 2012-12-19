@@ -1,0 +1,52 @@
+#!/usr/bin/ruby
+
+############################################################
+#
+# Title: Munki mass app info
+# Description: Creates multiple munki pkginfo install items for all apps in a given directory
+# Created: Dec 18, 2012
+# Author: rshott@sfu.ca
+############################################################
+
+############################################################
+# METHODS
+############################################################
+
+def make_app_info(app)
+	system("/usr/local/munki/makepkginfo -f '#{app}' >> '#{ARGV[1]}'")
+end
+
+############################################################
+# MAIN
+############################################################
+
+if ARGV[0].eql?('-h') or ARGV[0].eql?('--help')
+	puts "Version 1.00\n" \
+		 "Author: Riley Shott (rshott@sfu.ca)\n" \
+		 "https://github.com/Ginja/Admin_Scripts/blob/master/munkimassappinfo\n\n" \
+		 "Capabilities: This utility will create multiple munki pkginfo install items for all applications in a given directory.\n" \
+		 "Essentially this is the same as running '/usr/local/munki/makepkginfo -f /path/to/app' multiple times.\n\n" \
+		 "Usage:  #{__FILE__} <app directory> <plist output file>\n" \
+		 "	./munkimassappinfo '/Applications/Microsoft Office 2011' ./MS_Office_2011.plist\n\n"
+		 exit 0
+end
+
+begin
+	msg = Array.new
+	msg << "Usage: #{__FILE__} <app directory> <plist output file>" unless ARGV.length == 2
+	msg << "Error: #{ARGV[0]} doesn't appear to be a directory" unless File.directory?(File.expand_path(ARGV[0]))
+	msg << "Error: #{ARGV[1]} is not a valid place to put the plist file" unless File.directory?(File.dirname(File.expand_path(ARGV[1])))
+	raise unless msg.empty?
+rescue
+	msg.each { |m| puts m }
+	exit 1
+end
+
+apps = Dir.glob(ARGV[0].chomp('/') + "/*.app")
+if apps.empty?
+	puts "No applications were found inside #{File.expand_path(ARGV[0])}"
+	exit 1
+end
+apps.each { |p| puts "The info #{p} did get created properly" unless make_app_info(p) }
+puts 'Finished'
+exit 0
