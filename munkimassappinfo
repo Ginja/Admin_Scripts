@@ -47,6 +47,6 @@ if apps.empty?
 	puts "No applications were found inside #{File.expand_path(ARGV[0])}"
 	exit 1
 end
-apps.each { |p| puts "The info #{p} did get created properly" unless make_app_info(p) }
+apps.each { |p| puts "The install item info for #{p} did not get created properly" unless make_app_info(p) }
 puts 'Finished'
 exit 0
