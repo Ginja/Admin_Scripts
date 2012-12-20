@@ -45,8 +45,8 @@ end
 def non_alpha_character_rsync
   result = system("/usr/bin/rsync" \
                   " #{ARGV[0]}" \
-                  " --include='[^a-z]'" \
-                  " --exclude='/*'" \
+                  " --exclude='[a-zA-Z]'" \
+                  " --exclude='.*'" \
                   " #{ARGV[1].chomp('/')}/" \
                   " #{ARGV[2].chomp('/')}" \
                   " 1> #{ARGV[3].chomp('/')}/non-alpha_character.log" \
@@ -74,7 +74,7 @@ def leading_whitespace_rsync
   end
 end
 
-def hidden_folders_rsync
+def hidden_rsync
   result = system("/usr/bin/rsync" \
                   " #{ARGV[0]}" \
                   " --include='.*'" \
@@ -128,7 +128,7 @@ end
 ############################################################
 
 if ARGV[0].eql?('-h') or ARGV[0].eql?('--help')
-  puts "Version 1.21\n" \
+  puts "Version 1.22\n" \
        "Author: Riley Shott (rshott@sfu.ca)\n" \
        "https://github.com/Ginja/Admin_Scripts/blob/master/prsync_transfer\n\n" \
        "Capabilities: This utility will rsync all the contents of one folder into another but perform some of the transfer in parallel.\n" \
@@ -191,7 +191,7 @@ rsyncs_to_run.each {|n|
   when '3'
     leading_whitespace_rsync
   when '4'
-    hidden_folders_rsync
+    hidden_rsync
   else
     puts "Did not recognize the following job option - #{n}\n" \
     "Job options:\n" \
