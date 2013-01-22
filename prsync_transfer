@@ -11,12 +11,7 @@
 # CONSTANTS
 ############################################################
 
-A_TO_D = ('a'...'e').to_a
-E_TO_H = ('e'...'i').to_a
-I_TO_L = ('i'...'m').to_a
-M_TO_P = ('m'...'q').to_a
-Q_TO_T = ('q'...'u').to_a
-U_TO_Z = ('u'..'z').to_a
+A_TO_Z = ('a'..'z').to_a
 
 ############################################################
 # Global - Needed for keeping track of child processes
@@ -29,17 +24,32 @@ $children = Array.new
 ############################################################
 
 def start_parallel_rsync(group)
-  group.each { |i| $children << fork { system("/usr/bin/rsync" \
-                                              " #{ARGV[0]}" \
-                                              " --include='#{i}*'" \
-                                              " --include='#{i.upcase}*'" \
-                                              " --exclude='/*'" \
-                                              " #{ARGV[1].chomp('/')}/" \
-                                              " #{ARGV[2].chomp('/')}" \
-                                              " 1> #{ARGV[3].chomp('/')}/#{i}.log" \
-                                              " 2> #{ARGV[3].chomp('/')}/#{i}_error.log") 
-                                        check_for_errors($?, i) } }
-  Process.waitall
+  for i in group do
+    while max_prsyncs_reached?
+      sleep 30
+    end
+    $children << fork { system("/usr/bin/rsync" \
+                               " #{ARGV[0]}" \
+                               " --include='#{i}*'" \
+                               " --include='#{i.upcase}*'" \
+                               " --exclude='/*'" \
+                               " #{ARGV[1].chomp('/')}/" \
+                               " #{ARGV[2].chomp('/')}" \
+                               " 1> #{ARGV[3].chomp('/')}/#{i}.log" \
+                               " 2> #{ARGV[3].chomp('/')}/#{i}_error.log") 
+                        check_for_errors($?, i) }
+    Process.detach($children.last)
+  end
+end
+
+def max_prsyncs_reached?
+  return false if $children.length < 4
+  limit = Array.new
+  $children.each do |x|
+    limit << true if pid_exists?(x)
+    return true if limit.length == 4
+  end
+  return false
 end
 
 def non_alpha_character_rsync
@@ -102,14 +112,7 @@ def pid_exists?(pid)
   begin
     Process.kill(0, pid)
     return true
-  rescue Errno::ESRCH
-    puts "Appears that #{pid} is no longer running"
-    return false
-  rescue Errno::EPERM
-    puts "No permission to query #{pid}"
-    return false
   rescue
-    puts "Unable to determine status for #{pid}"
     return false
   end
 end
@@ -128,17 +131,17 @@ end
 ############################################################
 
 if ARGV[0].eql?('-h') or ARGV[0].eql?('--help')
-  puts "Version 1.22\n" \
+  puts "Version 2.0\n" \
        "Author: Riley Shott (rshott@sfu.ca)\n" \
        "https://github.com/Ginja/Admin_Scripts/blob/master/prsync_transfer\n\n" \
        "Capabilities: This utility will rsync all the contents of one folder into another but perform some of the transfer in parallel.\n" \
-       "It splits up the aA-zZ transfers into batches of 4 (except from u to z). All other transfers are done in serial.\n" \
-       "You will receive a report at the end of the command letting you know which transfers experienced errors.\n\n" \
+       "The alpha character rsync will be done in batches of 4. New alpha character transfers will start when old transfers finish (give or take 30 seconds).\n" \
+       "All other jobs are done serially. You will receive a report at the end of the command letting you know which transfers experienced errors.\n\n" \
        "Job options & order:\n" \
-       "  1.  alpha characters\n" \
-       "  2.  non-alpha characters\n" \
-       "  3.  files and folders with a leading whitespace\n" \
-       "  4.  hidden files and folders\n\n" \
+       "  1.  alpha characters (i.e. Aa-Zz) \n" \
+       "  2.  non-alpha characters (ex: 1_folder, _file)\n" \
+       "  3.  files and folders with a leading whitespace (ex: ' somefoldername')\n" \
+       "  4.  hidden files and folders (ex: .itsasecret) \n\n" \
        "Usage: #{__FILE__} <-rsync_options> <source> <target> <log_location> (jobs_to_run EX: 1-3)\n" \
        "By default, this utility will run jobs 1-4. You can specify the transfers you want to do:\n" \
        "  ./prsync_transfer -avP ~/source ~/target ~/log 3-4\n" \
@@ -180,12 +183,7 @@ rsyncs_to_run.each {|n|
   case n
   when '1'
     trap("SIGINT") { ctrl_c }
-    start_parallel_rsync(A_TO_D)
-    start_parallel_rsync(E_TO_H)
-    start_parallel_rsync(I_TO_L)
-    start_parallel_rsync(M_TO_P)
-    start_parallel_rsync(Q_TO_T)
-    start_parallel_rsync(U_TO_Z)
+    start_parallel_rsync(A_TO_Z)
   when '2'
     non_alpha_character_rsync
   when '3'
