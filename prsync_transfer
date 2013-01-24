@@ -55,16 +55,18 @@ end
 def non_alpha_character_rsync
   result = system("/usr/bin/rsync" \
                   " #{ARGV[0]}" \
-                  " --exclude='[a-zA-Z]'" \
+                  " --exclude='[a-z]*'" \
+                  " --exclude='[A-Z]*'" \
                   " --exclude='.*'" \
+                  " --exclude=' *'" \
                   " #{ARGV[1].chomp('/')}/" \
                   " #{ARGV[2].chomp('/')}" \
                   " 1> #{ARGV[3].chomp('/')}/non-alpha_character.log" \
                   " 2> #{ARGV[3].chomp('/')}/non-alpha_character_error.log")
   if result
-    puts "The non-character transfers completed successfully"
+    puts "The non-alpha character transfers completed successfully"
   else
-    puts "The non-character transfers did not exit with 0 - #{$?} - check its logs"
+    puts "The non-alpha character transfers did not exit with 0 - #{$?} - check its logs"
   end
 end
 
