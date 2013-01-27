@@ -52,6 +52,12 @@ def max_prsyncs_reached?
   return false
 end
 
+def wait_for_any_pids_running
+  $children.each { |p|
+    Process.wait(p) if pid_exists?(p) 
+  }
+end
+
 def non_alpha_character_rsync
   result = system("/usr/bin/rsync" \
                   " #{ARGV[0]}" \
@@ -201,3 +207,4 @@ rsyncs_to_run.each {|n|
        "  4.  hidden files and folders\n"
   end
 }
+wait_for_any_pids_running
