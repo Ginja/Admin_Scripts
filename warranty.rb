@@ -4,9 +4,9 @@
 #  Name: Applecare Warranty Check
 #  Author: Riley Shott
 #  Date: June 9, 2013
-#  Version: 0.1.0
+#  Version: 0.1.1
 #  Description: Checks whether or not the given serial(s) are covered under the AppleCare Protection Plan.
-#               This is just a quick script to demonstrate that you can get a JSON formatted response with Applecare information.
+#               This is just a quick script to demonstrate that you can get a JSON formatted response with some Applecare information.
 #####################################################################
 
 ### LIBRARIES ###
@@ -16,8 +16,11 @@ begin
   require 'net/https'
   require 'rubygems'
   require 'json'
-rescue LoadError
-  puts "Could not load required library"
+rescue LoadError => e
+  puts "Could not load a required library"
+  puts e
+  puts "Try installing the required gem:"
+  puts "gem install library"
   exit 1
 end
 
@@ -95,13 +98,14 @@ ARGV.each do |serial|
     puts "Has APP:            #{has_app}"
     puts "Hardware Coverage:  #{warranty['strHwCovStatus']}"
     puts "Phone Coverage:     #{warranty['strPhCovStatus']}"
-    puts "Days Left:          #{warranty['strPhDaysLeft']}\n" # Not sure what exactly this indicates. Adding this value from the current date did not add up to the expiry of my AppleCare
+    # Not sure what exactly this indicates. Adding this value from the current date did not add up to the expiry of my AppleCare
+    puts "Days Left:          #{warranty['strPhDaysLeft']}\n"
   else
     puts "\nAn error occured while checking this serial - #{serial}"
   end
 end
 
-puts "\nPlease be aware that the days left value may not be accurate. It is shown for demonstrational purposes only. See comment on line 94 for more information"
+puts "\nPlease be aware that the days left value is not indicative of the remaining days of the warranty. It is shown for demonstrational purposes only. See comment on line 101 for more information"
 
 exit 0
 
