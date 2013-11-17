@@ -40,7 +40,7 @@ class Drupal
         Dir.chdir("#{@dump_path}/#{@site_name}")
         File.open("#{DATE}_#{@site_name}/checksum.txt", 'w') { |f| f.write "#{@site_name}    #{md5}" }
         if system("tar cvfz #{DATE}_#{@site_name}.tar.gz #{DATE}_#{@site_name} && rm -rf #{DATE}_#{@site_name}")
-          # Checking if we need to start archive
+          # Checking if we need to start archiving
           cleanup if DAY > 28
         end
       end
