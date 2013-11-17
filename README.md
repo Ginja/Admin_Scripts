@@ -36,9 +36,9 @@ Admin Scripts
 10. drupal_db_dump.rb
    * A script that takes two parameters, a drupal sites directory, and a dump directory.
    * Order of operations:
-      * Dump each site in the given sites directory
-      * Create an md5 checksum of each dump
-      * Tar up each dump and checksum
+      * Dump each site in the given sites directory,
+      * Create an md5 checksum of each dump,
+      * Tar up each dump and checksum,
       * Archive the last dump for each site if a new month has started, and delete the rest.
 
 License Terms
