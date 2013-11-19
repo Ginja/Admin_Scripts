@@ -1,4 +1,4 @@
-Admin Scripts
+xAdmin Scripts
 =============
 
 1. chrome_auto-updates.rb
@@ -34,12 +34,13 @@ Admin Scripts
    * A quick script to perform makepkginfo on all .app files in a particular directory.
 
 10. drupal_db_dump.rb
-   * A script that takes two parameters, a drupal sites directory, and a dump directory.
-   * Order of operations:
-      * Dump each site in the given sites directory,
-      * Create an md5 checksum of each dump,
-      * Tar up each dump and checksum,
-      * Archive the last dump for each site if a new month has started, and delete the rest.
+   * A script that takes two or three parameters: a drupal sites directory, a dump directory. and an archive toggle.
+     Order of operations:
+         * Dump the database for each site in the given sites directory,
+         * Create an md5 checksum of each dump and write it to a file,
+         * Tar up each dump and its checksum,
+         * (Optional toggle) Purge all but the last backup for the previous month when a new month begins.
+     For more information see [here](http://rileyshott.wordpress.com/2013/11/19/linuxmac-backing-up-drupal-databases).
 
 License Terms
 =============
