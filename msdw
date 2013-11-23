@@ -49,7 +49,7 @@ class MySQLDump
           return
         end
         # Check if we need to archive
-        cleanup if DAY > 21 && @archive
+        cleanup if DAY > 28 && @archive
     end
   end
 
