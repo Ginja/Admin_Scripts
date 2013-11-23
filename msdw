@@ -1,0 +1,209 @@
+#!/usr/bin/env ruby
+
+############################################################
+#
+# Title: mysqldump wrapper (msdw)
+# Created: Nov 22, 2013
+# Author: rshott@sfu.ca
+# Version: 0.1
+############################################################
+
+### LIBRARIES ###
+require 'optparse'
+require 'fileutils'
+
+### CONSTANTS ###
+
+VERS  = '0.1'
+DAY   = `date +\%d`.chomp.to_i
+MONTH = `date +\%m`.chomp.to_i
+YEAR  = `date +\%Y`.chomp.to_i
+DATE  = "#{YEAR}-#{MONTH}-#{DAY}"
+
+### CLASSES ###
+
+class MySQLDump
+
+  attr_reader :database_name, :dump_location, :base_dump_location, :mysqldump_options
+
+  def initialize(database_name, dump_location, mysqldump_options, archive)
+    @database_name = database_name
+    @dump_location = File.expand_path("#{dump_location}/#{@database_name}")
+    @dump_folder = File.expand_path("#{@dump_location}/#{DATE}_#{@database_name}")
+    @mysqldump_options = mysqldump_options
+    @archive = archive
+  end
+
+  def backup
+    unless File.exists?("#{@dump_folder}/#{DATE}_#{@database_name}.tar.gz")
+        begin
+          FileUtils.mkdir_p("#{@dump_folder}", :mode => 0700)
+          Dir.chdir("#{@dump_location}")
+          return unless dump
+          return unless create_md5
+          return unless compress
+          puts "Dump of the #{@database_name} database was successful."
+        rescue Errno::ENOENT => e
+          message = 'An error occured while trying to dump #{@database_name}:' + "\n\n" + "Error Message: " + e.message + "\n" + "Backtrace: " + e.backtrace.inspect
+          puts message
+          return
+        end
+        # Check if we need to archive
+        cleanup if DAY > 21 && @archive
+    end
+  end
+
+  private
+
+  def dump
+    unless system(%Q{mysqldump #{mysqldump_options} #{@database_name} > "#{@dump_folder}/#{@database_name}.sql"})
+      puts "Could not dump the #{@database_name} database."
+      `rm -rf "#{@dump_folder}"`
+      return false
+    end
+    true
+  end
+
+  def create_md5
+    md5 = %x{openssl md5 "#{@dump_folder}/#{@database_name}.sql"  | awk '{print $NF}'}
+    unless $?.exitstatus == 0
+      puts "Could not create an md5 checksum for #{@database_name}."
+      return false
+    else
+      File.open("#{@dump_folder}/checksum.txt", 'w') { |f| f.write "#{@database_name}    #{md5}" }
+      true
+    end
+  end
+
+  def compress
+    unless system(%Q{tar czf #{DATE}_#{@database_name}.tar.gz #{DATE}_#{@database_name} &> /dev/null && rm -rf "#{@dump_folder}"})
+      puts "Could not compress #{@database_name} dump, leaving it as is."
+      return false
+    end
+    true
+  end
+
+  def cleanup
+    files = Dir.glob("*_#{@database_name}.tar.gz").sort
+    month_count = files.collect { |x| x.split('-')[1] }.uniq.length
+    if month_count == 2
+      begin
+        year, month = last_backup_period
+        FileUtils.mkdir('monthly_archives', :mode => 0700 ) unless File.directory?('monthly_archives')
+        last_months_files = Dir.glob("#{@dump_location}/#{year}-#{month}-*_#{@database_name}.tar.gz").sort
+        unless last_months_files.empty?
+          FileUtils.mv(last_months_files.pop, 'monthly_archives/')
+          FileUtils.rm(last_months_files, :force => true)
+          puts "Archived #{@database_name} successfully."
+        else
+          puts "There was nothing to archive for #{@database_name}."
+        end
+      rescue Errno::ENOENT => e
+        message = 'An error occured while trying to archive for #{@database_name}:' + "\n\n" + "Error Message: " + e.message + "\n" + "Backtrace: " + e.backtrace.inspect
+        puts message
+        return
+      end
+    elsif month_count >= 3
+      puts "Backups span more than two months for #{@database_name}. Please manually resolve this if you want archiving to work."
+      return
+    end
+  end
+
+  def last_backup_period
+    if MONTH == 1
+      return YEAR - 1, 12
+    else
+      return YEAR, MONTH - 1
+    end
+  end
+
+end
+
+### METHODS ###
+
+def sanity_check(options)
+  error_messages = []
+  error_messages << "The dump location needs to be an existing directory - #{options[:dump_location]}" unless File.directory?(options[:dump_location])
+
+  check = {}
+
+  check['mysqldump'] = system("which mysqldump &> /dev/null")
+  check['openssl']   = system("which openssl &> /dev/null")
+  check['tar']       = system("which tar &> /dev/null")
+  check['rm']        = system("which rm &> /dev/null")
+  check['date']      = system("which date &> /dev/null")
+  check.each do |key, value|
+      error_messages << "This script requires #{key}. Please ensure it's installed and in your PATH." if value == false
+  end
+  unless error_messages.empty?
+    puts error_messages
+    exit 1
+  end
+end
+
+### ARGUMENT PARSING ###
+
+options = {}
+
+optparse = OptionParser.new do |opts|
+  opts.banner = "mysqldump wrapper (msdw)\nUsage: #{__FILE__} --databases database1,database2 --dump-path /path [-- mysqldump options]"
+
+  opts.separator ""
+  opts.separator "Specific options:"
+
+  opts.on("-d", "--databases database1,database2", Array, "The database(s) to dump. If multiple, they must be separated by commas with no spaces in between.") do |db|
+    options[:databases] = db
+  end
+
+  opts.on("-l", "--dump-location /path", "Path to store the dump files") do |path|
+    options[:dump_location] = path
+  end
+
+    options[:archive] = false
+    opts.on("-a", "--archive", "Purge all but the last of the previous months' dumps when a new months starts") do |bool|
+    options[:archive] = bool
+  end
+
+  opts.on_tail( '-h', '--help', 'Display this screen' ) do
+    puts opts
+    exit
+  end
+
+  opts.on_tail( '--version', 'Show version' ) do
+    puts "Version: #{VERS}"
+    exit
+  end
+end
+
+other_opts = []
+begin
+  optparse.parse!
+  mandatory = [:databases, :dump_location]
+  missing = mandatory.select{ |param| options[param].nil? }
+  unless missing.empty?
+    puts "Missing options: #{missing.join(', ')}"
+    puts optparse
+    exit
+  end
+  sanity_check(options)
+rescue OptionParser::MissingArgument
+  puts $!.to_s
+  puts optparse
+  exit 1
+rescue OptionParser::InvalidOption => e
+  puts e.to_s
+  exit 1
+end
+
+### MAIN ###
+
+dump_location = File.expand_path("#{options[:dump_location]}")
+
+options[:databases].each do |db|
+  mysql_db = MySQLDump.new(db, dump_location, ARGV.join(" "), options[:archive])
+  puts "\n\n=== #{mysql_db.database_name} ==="
+  mysql_db.backup
+end
+
+puts "\n\n"
+exit 0
