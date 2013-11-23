@@ -159,8 +159,8 @@ optparse = OptionParser.new do |opts|
     options[:dump_location] = path
   end
 
-    options[:archive] = false
-    opts.on("-a", "--archive", "Purge all but the last of the previous months' dumps when a new months starts") do |bool|
+  options[:archive] = false
+  opts.on("-a", "--archive", "Purge all but the last dump of the previous month when a new months starts") do |bool|
     options[:archive] = bool
   end
 
