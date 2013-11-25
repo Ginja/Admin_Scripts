@@ -24,21 +24,21 @@ DATE  = "#{YEAR}-#{MONTH}-#{DAY}"
 
 class MySQLDump
 
-  attr_reader :database_name, :dump_location, :base_dump_location, :mysqldump_options
+  attr_reader :database_name, :dump_path, :base_dump_path, :mysqldump_options
 
-  def initialize(database_name, dump_location, mysqldump_options, archive)
+  def initialize(database_name, dump_path, mysqldump_options, archive)
     @database_name = database_name
-    @dump_location = File.expand_path("#{dump_location}/#{@database_name}")
-    @dump_folder = File.expand_path("#{@dump_location}/#{DATE}_#{@database_name}")
+    @dump_path = File.expand_path("#{dump_path}/#{@database_name}")
+    @dump_folder = File.expand_path("#{@dump_path}/#{DATE}_#{@database_name}")
     @mysqldump_options = mysqldump_options
     @archive = archive
   end
 
   def backup
-    unless File.exists?("#{@dump_folder}/#{DATE}_#{@database_name}.tar.gz")
+    unless File.exists?("#{@dump_path}/#{DATE}_#{@database_name}.tar.gz")
         begin
           FileUtils.mkdir_p("#{@dump_folder}", :mode => 0700)
-          Dir.chdir("#{@dump_location}")
+          Dir.chdir("#{@dump_path}")
           return unless dump
           return unless create_md5
           return unless compress
@@ -67,7 +67,7 @@ class MySQLDump
   def create_md5
     md5 = %x{openssl md5 "#{@dump_folder}/#{@database_name}.sql"  | awk '{print $NF}'}
     unless $?.exitstatus == 0
-      puts "Could not create an md5 checksum for #{@database_name}."
+      puts "Could not create an md5 checksum for #{@database_name}, leaving dump as is."
       return false
     else
       File.open("#{@dump_folder}/checksum.txt", 'w') { |f| f.write "#{@database_name}    #{md5}" }
@@ -77,7 +77,7 @@ class MySQLDump
 
   def compress
     unless system(%Q{tar czf #{DATE}_#{@database_name}.tar.gz #{DATE}_#{@database_name} &> /dev/null && rm -rf "#{@dump_folder}"})
-      puts "Could not compress #{@database_name} dump, leaving it as is."
+      puts "Could not compress #{@database_name} dump, leaving dump as is."
       return false
     end
     true
@@ -90,7 +90,7 @@ class MySQLDump
       begin
         year, month = last_backup_period
         FileUtils.mkdir('monthly_archives', :mode => 0700 ) unless File.directory?('monthly_archives')
-        last_months_files = Dir.glob("#{@dump_location}/#{year}-#{month}-*_#{@database_name}.tar.gz").sort
+        last_months_files = Dir.glob("#{@dump_path}/#{year}-#{month}-*_#{@database_name}.tar.gz").sort
         unless last_months_files.empty?
           FileUtils.mv(last_months_files.pop, 'monthly_archives/')
           FileUtils.rm(last_months_files, :force => true)
@@ -123,7 +123,7 @@ end
 
 def sanity_check(options)
   error_messages = []
-  error_messages << "The dump location needs to be an existing directory - #{options[:dump_location]}" unless File.directory?(options[:dump_location])
+  error_messages << "The dump location needs to be an existing directory - #{options[:dump_path]}" unless File.directory?(options[:dump_path])
 
   check = {}
 
@@ -146,7 +146,7 @@ end
 options = {}
 
 optparse = OptionParser.new do |opts|
-  opts.banner = "mysqldump wrapper (msdw)\nUsage: #{__FILE__} --databases database1,database2 --dump-path /path [-- mysqldump options]"
+  opts.banner = "mysqldump wrapper (msdw)\nUsage: #{__FILE__} --databases database1,database2 --dump-location /path [-- mysqldump options]"
 
   opts.separator ""
   opts.separator "Specific options:"
@@ -155,8 +155,8 @@ optparse = OptionParser.new do |opts|
     options[:databases] = db
   end
 
-  opts.on("-l", "--dump-location /path", "Path to store the dump files") do |path|
-    options[:dump_location] = path
+  opts.on("-p", "--path /path", "Path to store the dump files") do |path|
+    options[:dump_path] = path
   end
 
   options[:archive] = false
@@ -178,7 +178,7 @@ end
 other_opts = []
 begin
   optparse.parse!
-  mandatory = [:databases, :dump_location]
+  mandatory = [:databases, :dump_path]
   missing = mandatory.select{ |param| options[param].nil? }
   unless missing.empty?
     puts "Missing options: #{missing.join(', ')}"
@@ -197,10 +197,10 @@ end
 
 ### MAIN ###
 
-dump_location = File.expand_path("#{options[:dump_location]}")
+dump_path = File.expand_path("#{options[:dump_path]}")
 
 options[:databases].each do |db|
-  mysql_db = MySQLDump.new(db, dump_location, ARGV.join(" "), options[:archive])
+  mysql_db = MySQLDump.new(db, dump_path, ARGV.join(" "), options[:archive])
   puts "\n\n=== #{mysql_db.database_name} ==="
   mysql_db.backup
 end
