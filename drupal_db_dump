@@ -1,0 +1,217 @@
+#!/usr/bin/env ruby
+
+############################################################
+#
+# Title: Drupal Database Backup Utility
+# Created: Nov 04, 2013
+# Author: rshott@sfu.ca
+# Version: 0.8
+############################################################
+
+### GLOBAL VARIABLES ###
+
+VERS  = 0.8
+DAY   = `date +\%d`.chomp.to_i
+MONTH = `date +\%m`.chomp.to_i
+YEAR  = `date +\%Y`.chomp.to_i
+DATE  = "#{YEAR}-#{MONTH}-#{DAY}"
+
+### LIBRARIES ###
+
+require 'fileutils'
+require 'optparse'
+
+### CLASSES ###
+
+class Drupal
+
+  attr_reader :site_name, :site_path, :dump_path, :active
+
+  def initialize(sites_path, dump_path, archive)
+    @site_name  = sites_path.split('/').last
+    @site_path  = sites_path
+    @dump_path = "#{dump_path}/#{@site_name}"
+    @dump_folder  = "#{@dump_path}/#{DATE}_#{@site_name}"
+    @archive = archive
+    @active = File.exists?("#{@site_name}/settings.php") ? true : false
+  end
+
+  def backup
+    unless File.exists?("#{@dump_path}/#{DATE}_#{@site_name}.tar.gz")
+      begin
+        Dir.chdir(@site_path)
+        FileUtils.mkdir_p("#{@dump_folder}", :mode => 0700)
+        return unless dump
+        return unless create_md5
+        Dir.chdir(@dump_path)
+        return unless compress
+        puts "The database dump for #{@site_name} was successful."
+      rescue Errno::ENOENT => e
+        message = 'An error occured while trying to dump the database for #{@site_name}:' + "\n\n" + "Error Message: " + e.message + "\n" + "Backtrace: " + e.backtrace.inspect
+        puts message
+        return
+      end
+      cleanup if DAY > 28 && @archive
+    else
+      puts "A dump today already exists for #{@site_name}."
+    end
+  end
+
+  private
+
+  def dump
+    puts @dump_folder
+    unless system(%Q{drush --result-file='#{@dump_folder}/#{@site_name}.sql' --quiet sql-dump})
+      puts "Could not dump the database for #{@site_name}."
+      `rm -rf "#{@dump_folder}"`
+      return false
+    end
+    true
+  end
+
+  def create_md5
+    md5 = %x{openssl md5 "#{@dump_folder}/#{@site_name}.sql" | awk '{print $NF}'}
+    unless $?.exitstatus == 0
+      puts "Could not create an md5 checksum for the database of #{@site_name}, leaving dump as is."
+      return false
+    else
+      File.open("#{@dump_folder}/checksum.txt", 'w') { |f| f.write "#{@site_name}    #{md5}" }
+      true
+    end
+  end
+
+  def compress
+    unless system(%Q{tar czf #{DATE}_#{@site_name}.tar.gz #{DATE}_#{@site_name} &> /dev/null && rm -rf "#{@dump_folder}"})
+      puts "Could not compress dump for #{@site_name}, leaving dump as is."
+      return false
+    end
+    true
+  end
+
+  def cleanup
+    files = Dir.glob("*_#{@site_name}.tar.gz").sort
+    month_count = files.collect { |x| x.split('-')[1] }.uniq.length
+    if month_count == 2
+      begin
+        year, month = last_backup_period
+        FileUtils.mkdir('monthly_archives', :mode => 0700 ) unless File.directory?('monthly_archives')
+        last_months_files = Dir.glob("#{@dump_path}/#{year}-#{month}-*_#{@site_name}.tar.gz").sort
+        unless last_months_files.empty?
+          FileUtils.mv(last_months_files.pop, 'monthly_archives/')
+          FileUtils.rm(last_months_files, :force => true)
+        else
+          puts "There was nothing to archive for #{@site_name}."
+        end
+      rescue Errno::ENOENT => e
+        message = 'An error occured while trying to archive for #{@site_name}:' + "\n\n" + "Error Message: " + e.message + "\n" + "Backtrace: " + e.backtrace.inspect
+        puts message
+        return
+      end
+    elsif month_count >= 3
+      puts "Backups span more than two months for #{@site_name}. Please manually resolve this if you want archiving to work."
+    end
+  end
+
+  def last_backup_period
+    if MONTH == 1
+      return YEAR - 1, 12
+    else
+      return YEAR, MONTH - 1
+    end
+  end
+
+end
+
+### METHODS ###
+
+def sanity_check(options)
+  error_messages = []
+  error_messages << "The Drupal sites path needs to be an existing directory - #{options[:sites_location]}" unless File.directory?(options[:sites_location])
+  error_messages << "The dump path needs to be an existing directory - #{options[:dump_path]}" unless File.directory?(options[:dump_path])
+  error_messages << "Drush requires the dump path to have no spaces - #{options[:dump_path]}" if options[:dump_path].index(/\s/)
+
+  check = {}
+
+  check['drush']   = system("which drush &> /dev/null")
+  check['openssl'] = system("which openssl &> /dev/null")
+  check['tar']     = system("which tar &> /dev/null")
+  check['rm']      = system("which rm &> /dev/null")
+  check['date']    = system("which date &> /dev/null")
+  check.each do |key, value|
+      error_messages << "This script requires #{key}. Please ensure it's installed and in your PATH." if value == false
+  end
+  unless error_messages.empty?
+    puts error_messages
+    exit 1
+  end
+end
+
+### ARGUMENT PARSING ###
+
+options = {}
+
+optparse = OptionParser.new do |opts|
+  opts.banner = "Drupal Database Dump (drupal_db_dump)\nUsage: #{__FILE__} --site-location /path/to/sites --path /path"
+
+  opts.separator ""
+  opts.separator "Specific options:"
+
+  opts.on("-s", "--site-location /path/to/sites", "The path to your Drupal sites directory.") do |db|
+    options[:sites_location] = db
+  end
+
+  opts.on("-p", "--path /path", "Path to store the dump files. Must not contain spaces.") do |path|
+    options[:dump_path] = path
+  end
+
+  options[:archive] = false
+  opts.on("-a", "--archive", "Purge all but the last dump of the previous month when a new months starts") do |bool|
+    options[:archive] = bool
+  end
+
+  opts.on_tail( '-h', '--help', 'Display this screen' ) do
+    puts opts
+    exit
+  end
+
+  opts.on_tail( '--version', 'Show version' ) do
+    puts "Version: #{VERS}"
+    exit
+  end
+end
+
+other_opts = []
+begin
+  optparse.parse!
+  mandatory = [:sites_location, :dump_path]
+  missing = mandatory.select{ |param| options[param].nil? }
+  unless missing.empty?
+    puts "Missing options: #{missing.join(', ')}"
+    puts optparse
+    exit
+  end
+  sanity_check(options)
+rescue OptionParser::MissingArgument
+  puts $!.to_s
+  puts optparse
+  exit 1
+rescue OptionParser::InvalidOption => e
+  puts e.to_s
+  exit 1
+end
+
+### MAIN ###
+
+drupal_sites_location = File.expand_path(options[:sites_location])
+dump_path = File.expand_path(options[:dump_path])
+
+Dir.glob("#{drupal_sites_location}/*").each do |site|
+  drupal_site = Drupal.new(site, dump_path, options[:archive])
+  if drupal_site.active
+    puts "\n\n=== #{drupal_site.site_name} ==="
+    drupal_site.backup
+  end
+end
+
+puts "\n\n"
+exit 0
