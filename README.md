@@ -1,4 +1,4 @@
-xAdmin Scripts
+Admin Scripts
 =============
 
 1. chrome_auto-updates.rb
@@ -33,14 +33,25 @@ xAdmin Scripts
 9. munkimassappinfo
    * A quick script to perform makepkginfo on all .app files in a particular directory.
 
-10. drupal_db_dump.rb
-   * A script that takes two or three parameters: a drupal sites directory, a dump directory. and an archive toggle.
-     Order of operations:
-         * Dump the database for each site in the given sites directory,
-         * Create an md5 checksum of each dump and write it to a file,
-         * Tar up each dump and its checksum,
-         * (Optional toggle) Purge all but the last backup for the previous month when a new month begins.
-     For more information see [here](http://rileyshott.wordpress.com/2013/11/19/linuxmac-backing-up-drupal-databases).
+10. drupal_db_dump
+  * A script that takes two or three parameters: a Drupal sites directory, a dump directory. and an archive toggle.
+  * Order of operations:
+    * Dump the database for each active site in the given sites directory,
+    * Create an md5 checksum of each dump and write it to a file,
+    * Tar up each dump and its checksum,
+    * (Optional toggle) Purge all but the last dump of the previous month when a new months starts.
+  * For more information see [here](http://rileyshott.wordpress.com/2013/11/19/linuxmac-backing-up-drupal-databases).
+ 
+11. msdw (mysqldump wrapper)
+  * A wrapper for the mysqldump command. Takes two or three parameters: the database(s) to dump, a dump directory, and an archive toggle.
+  * You can also pass in options for the mysqldump command (ex: MySQL user, and password):
+    * Usage: ./msdw --databases database1,database2 --dump-location /path [-- mysqldump options] 
+    * ./msdw -d database1,database2,database3 -p /path/to/store/dumps -a -- -u mysql_user --password=itsasecret --single-transaction  
+  * Order of operations:
+    * Dump the databases given,
+    * Create an md5 checksum of each dump and write it to a file,
+    * Tar up each dump and its checksum,
+    * (Optional toggle) Purge all but the last dump of the previous month when a new months starts.
 
 License Terms
 =============
