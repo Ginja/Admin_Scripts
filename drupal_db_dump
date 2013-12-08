@@ -33,7 +33,7 @@ class Drupal
     @dump_path = "#{dump_path}/#{@site_name}"
     @dump_folder  = "#{@dump_path}/#{DATE}_#{@site_name}"
     @archive = archive
-    @active = File.exists?("#{@site_name}/settings.php") ? true : false
+    @active = File.exists?("#{@site_path}/settings.php") ? true : false
   end
 
   def backup
@@ -51,7 +51,7 @@ class Drupal
         puts message
         return
       end
-      cleanup if DAY > 28 && @archive
+      cleanup if DAY >= 28 && @archive
     else
       puts "A dump today already exists for #{@site_name}."
     end
