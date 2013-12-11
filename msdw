@@ -50,6 +50,8 @@ class MySQLDump
         end
         # Check if we need to archive
         cleanup if DAY >= 28 && @archive
+    else
+      puts "A dump today already exists for #{@database_name}."
     end
   end
 
