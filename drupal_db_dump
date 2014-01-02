@@ -5,15 +5,15 @@
 # Title: Drupal Database Backup Utility
 # Created: Nov 04, 2013
 # Author: rshott@sfu.ca
-# Version: 0.8
+# Version: 0.9
 ############################################################
 
 ### GLOBAL VARIABLES ###
 
-VERS  = 0.8
-DAY   = `date +\%d`.chomp.to_i
-MONTH = `date +\%m`.chomp.to_i
-YEAR  = `date +\%Y`.chomp.to_i
+VERS  = 0.9
+DAY   = `date +\%d`.chomp
+MONTH = `date +\%m`.chomp
+YEAR  = `date +\%Y`.chomp
 DATE  = "#{YEAR}-#{MONTH}-#{DAY}"
 
 ### LIBRARIES ###
@@ -51,7 +51,7 @@ class Drupal
         puts message
         return
       end
-      cleanup if DAY >= 28 && @archive
+      cleanup if DAY.to_i == 1 && @archive
     else
       puts "A dump today already exists for #{@site_name}."
     end
@@ -113,10 +113,10 @@ class Drupal
   end
 
   def last_backup_period
-    if MONTH == 1
-      return YEAR - 1, 12
+    if MONTH.to_i == 1
+      return YEAR.to_i - 1, 12
     else
-      return YEAR, MONTH - 1
+      return YEAR.to_i, MONTH.to_i - 1
     end
   end
 
