@@ -116,7 +116,7 @@ class Drupal
     if MONTH.to_i == 1
       return YEAR.to_i - 1, 12
     else
-      return YEAR.to_i, MONTH.to_i - 1
+      return YEAR, sprintf('%02d', MONTH.to_i - 1)
     end
   end
 
