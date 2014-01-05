@@ -5,12 +5,12 @@
 # Title: Drupal Database Backup Utility
 # Created: Nov 04, 2013
 # Author: rshott@sfu.ca
-# Version: 0.9
+# Version: 1.0
 ############################################################
 
 ### GLOBAL VARIABLES ###
 
-VERS  = 0.9
+VERS  = 1.0
 DAY   = `date +\%d`.chomp
 MONTH = `date +\%m`.chomp
 YEAR  = `date +\%Y`.chomp
@@ -81,7 +81,7 @@ class Drupal
   end
 
   def compress
-    unless system(%Q{tar czf #{DATE}_#{@site_name}.tar.gz #{DATE}_#{@site_name} &> /dev/null && rm -rf "#{@dump_folder}"})
+    unless system('bash', '-c', %Q{tar czf #{DATE}_#{@site_name}.tar.gz #{DATE}_#{@site_name} &> /dev/null && rm -rf "#{@dump_folder}"})
       puts "Could not compress dump for #{@site_name}, leaving dump as is."
       return false
     end
@@ -132,11 +132,11 @@ def sanity_check(options)
 
   check = {}
 
-  check['drush']   = system("which drush &> /dev/null")
-  check['openssl'] = system("which openssl &> /dev/null")
-  check['tar']     = system("which tar &> /dev/null")
-  check['rm']      = system("which rm &> /dev/null")
-  check['date']    = system("which date &> /dev/null")
+  check['drush']   = system('bash', '-c', 'which drush &> /dev/null')
+  check['openssl'] = system('bash', '-c', 'which openssl &> /dev/null')
+  check['tar']     = system('bash', '-c', 'which tar &> /dev/null')
+  check['rm']      = system('bash', '-c', 'which rm &> /dev/null')
+  check['date']    = system('bash', '-c', 'which date &> /dev/null')
   check.each do |key, value|
       error_messages << "This script requires #{key}. Please ensure it's installed and in your PATH." if value == false
   end

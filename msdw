@@ -5,7 +5,7 @@
 # Title: mysqldump wrapper (msdw)
 # Created: Nov 22, 2013
 # Author: rshott@sfu.ca
-# Version: 0.2
+# Version: 0.3
 ############################################################
 
 ### LIBRARIES ###
@@ -14,7 +14,7 @@ require 'fileutils'
 
 ### CONSTANTS ###
 
-VERS  = '0.2'
+VERS  = '0.3'
 DAY   = `date +\%d`.chomp
 MONTH = `date +\%m`.chomp
 YEAR  = `date +\%Y`.chomp
@@ -78,7 +78,7 @@ class MySQLDump
   end
 
   def compress
-    unless system(%Q{tar czf #{DATE}_#{@database_name}.tar.gz #{DATE}_#{@database_name} &> /dev/null && rm -rf "#{@dump_folder}"})
+    unless system('bash', '-c', %Q{tar czf #{DATE}_#{@database_name}.tar.gz #{DATE}_#{@database_name} &> /dev/null && rm -rf "#{@dump_folder}"})
       puts "Could not compress #{@database_name} dump, leaving dump as is."
       return false
     end
@@ -129,11 +129,11 @@ def sanity_check(options)
 
   check = {}
 
-  check['mysqldump'] = system("which mysqldump &> /dev/null")
-  check['openssl']   = system("which openssl &> /dev/null")
-  check['tar']       = system("which tar &> /dev/null")
-  check['rm']        = system("which rm &> /dev/null")
-  check['date']      = system("which date &> /dev/null")
+  check['mysqldump'] = system('bash', '-c', 'which mysqldump &> /dev/null')
+  check['openssl']   = system('bash', '-c', 'which openssl &> /dev/null')
+  check['tar']       = system('bash', '-c', 'which tar &> /dev/null')
+  check['rm']        = system('bash', '-c', 'which rm &> /dev/null')
+  check['date']      = system('bash', '-c', 'which date &> /dev/null')
   check.each do |key, value|
       error_messages << "This script requires #{key}. Please ensure it's installed and in your PATH." if value == false
   end
