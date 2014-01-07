@@ -45,7 +45,7 @@ Admin Scripts
 11. msdw (mysqldump wrapper)
   * A wrapper for the mysqldump command. Takes two or three parameters: the database(s) to dump, a dump directory, and an archive toggle. You can also pass in options to the mysqldump command (ex: MySQL user, and password).
   * Usage: ./msdw --databases database1,database2 --dump-path /path [-a] [-- mysqldump options]
-  * ```./msdw -d database1,database2,database3 -p /path/to/store/dumps -a -- -u mysql_user --password=itsasecret```
+```./msdw -d database1,database2,database3 -p /backups -a -- -u mysql_user --password=itsasecret```
   * Order of operations:
     * Dump the databases given,
     * Create an md5 checksum of each dump and write it to a file,
@@ -55,7 +55,7 @@ Admin Scripts
 12. wpb (WordPress backup)
   * A utility to backup your WordPress site & database. As with msdw, you can pass in options to the mysqldump command.
   * Usage: ./wpb --database database_name --dump-path /path [-a] [-- mysqldump options]
-  * ```./wpb -d wordpress -p /backups -a -- -u backupuser --password=foryoureyesonly```
+```./wpb -d wordpress -p /backups -a -- -u backupuser --password=foryoureyesonly```
 
 License Terms
 =============
