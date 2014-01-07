@@ -2,10 +2,10 @@
 
 ############################################################
 #
-# Title: mysqldump wrapper (msdw)
-# Created: Nov 22, 2013
+# Title: WordPress Backup (wpb)
+# Created: Jan 5, 2013
 # Author: rshott@sfu.ca
-# Version: 0.3
+# Version: 0.1
 ############################################################
 
 ### LIBRARIES ###
@@ -14,7 +14,7 @@ require 'fileutils'
 
 ### CONSTANTS ###
 
-VERS  = '0.3'
+VERS  = '0.1'
 DAY   = `date +\%d`.chomp
 MONTH = `date +\%m`.chomp
 YEAR  = `date +\%Y`.chomp
@@ -22,11 +22,12 @@ DATE  = "#{YEAR}-#{MONTH}-#{DAY}"
 
 ### CLASSES ###
 
-class MySQLDump
+class WordPressBackup
 
-  attr_reader :database_name, :dump_path, :base_dump_path, :mysqldump_options
+  attr_reader :site_path, :database_name, :dump_path, :base_dump_path, :mysqldump_options
 
-  def initialize(database_name, dump_path, mysqldump_options, archive)
+  def initialize(site_path, database_name, dump_path, mysqldump_options, archive)
+    @site_path = site_path
     @database_name = database_name
     @dump_path = File.expand_path("#{dump_path}/#{@database_name}")
     @dump_folder = File.expand_path("#{@dump_path}/#{DATE}_#{@database_name}")
@@ -40,9 +41,10 @@ class MySQLDump
           FileUtils.mkdir_p("#{@dump_folder}", :mode => 0700)
           Dir.chdir("#{@dump_path}")
           return unless dump
+          return unless copy
           return unless create_md5
           return unless compress
-          puts "Dump of the #{@database_name} database was successful."
+          puts "Backup of the #{@database_name} site was successful."
         rescue Errno::ENOENT => e
           message = 'An error occured while trying to dump #{@database_name}:' + "\n\n" + "Error Message: " + e.message + "\n" + "Backtrace: " + e.backtrace.inspect
           puts message
@@ -51,11 +53,20 @@ class MySQLDump
         # Check if we need to archive
         cleanup if DAY.to_i == 1 && @archive
     else
-      puts "A dump today already exists for #{@database_name}."
+      puts "A backup already exists today for #{@database_name}."
     end
   end
 
   private
+
+  def copy
+    unless system(%Q{cp -R #{@site_path} #{@dump_folder}/})
+      puts "Could not copy the WordPress site data."
+      `rm -rf "#{@dump_folder}"`
+      return false
+    end
+    true
+  end
 
   def dump
     unless system(%Q{mysqldump #{mysqldump_options} #{@database_name} > "#{@dump_folder}/#{@database_name}.sql"})
@@ -79,7 +90,7 @@ class MySQLDump
 
   def compress
     unless system('bash', '-c', %Q{tar czf #{DATE}_#{@database_name}.tar.gz #{DATE}_#{@database_name} &> /dev/null && rm -rf "#{@dump_folder}"})
-      puts "Could not compress #{@database_name} dump, leaving dump as is."
+      puts "Could not compress #{@database_name} backup, leaving it as is."
       return false
     end
     true
@@ -148,21 +159,25 @@ end
 options = {}
 
 optparse = OptionParser.new do |opts|
-  opts.banner = "mysqldump wrapper (msdw)\nUsage: #{__FILE__} --databases database1,database2 --dump-path /path [-- mysqldump options]"
+  opts.banner = "wordpress backup (wpb)\nUsage: #{__FILE__} --databases database --dump-path /path --site-path /path [-- mysqldump options]"
 
   opts.separator ""
   opts.separator "Specific options:"
 
-  opts.on("-d", "--databases database1,database2", Array, "The database(s) to dump. If multiple, they must be separated by commas with no spaces in between.") do |db|
-    options[:databases] = db
+  opts.on("-d", "--database database", "The name of your WordPress database.") do |db|
+    options[:database] = db
   end
 
   opts.on("-p", "--dump-path /path", "Path to store the dump files") do |path|
     options[:dump_path] = path
   end
 
+  opts.on("-s", "--site-path /path", "Path to your WordPress data") do |path|
+    options[:site_path] = path
+  end
+
   options[:archive] = false
-  opts.on("-a", "--archive", "Purge all but the last dump of the previous month when a new months starts") do |bool|
+  opts.on("-a", "--archive", "Purge all but the last backup for the previous month when a new months starts") do |bool|
     options[:archive] = bool
   end
 
@@ -180,7 +195,7 @@ end
 other_opts = []
 begin
   optparse.parse!
-  mandatory = [:databases, :dump_path]
+  mandatory = [:database, :dump_path, :site_path]
   missing = mandatory.select{ |param| options[param].nil? }
   unless missing.empty?
     puts "Missing options: #{missing.join(', ')}"
@@ -200,12 +215,11 @@ end
 ### MAIN ###
 
 dump_path = File.expand_path("#{options[:dump_path]}")
+site_path = File.expand_path("#{options[:site_path]}")
 
-options[:databases].each do |db|
-  mysql_db = MySQLDump.new(db, dump_path, ARGV.join(" "), options[:archive])
-  puts "\n\n=== #{mysql_db.database_name} ==="
-  mysql_db.backup
-end
+wp_site = WordPressBackup.new(site_path, options[:database], dump_path, ARGV.join(" "), options[:archive])
+puts "\n\n=== #{wp_site.database_name} ==="
+wp_site.backup
 
 puts "\n\n"
 exit 0
