@@ -45,7 +45,7 @@ Admin Scripts
 11. msdw (mysqldump wrapper)
   * A wrapper for the mysqldump command. Takes two or three parameters: the database(s) to dump, a dump directory, and an archive toggle. You can also pass in options to the mysqldump command (ex: MySQL user, and password).
   * Usage: ./msdw --databases database1,database2 --dump-path /path [-a] [-- mysqldump options]
-  * ```./msdw -d database1,database2,database3 -p /path/to/store/dumps -a -- -u mysql_user --password=itsasecret --single-transaction```
+  * ```./msdw -d database1,database2,database3 -p /path/to/store/dumps -a -- -u mysql_user --password=itsasecret```
   * Order of operations:
     * Dump the databases given,
     * Create an md5 checksum of each dump and write it to a file,
