@@ -5,21 +5,21 @@ Admin Scripts
    * This script enables system wide automatic updates for Google Chrome. It should work for Chrome versions 18 and later.
 
 2. iMac_Warranty_Check.rb
-	 * Script that checks iMac serial numbers (in a txt, or excel file) for their eligibility into the [iMac Seagate HDD Recall](http://www.apple.com/support/imac-harddrive/).
+   * Script that checks iMac serial numbers (in a txt, or excel file) for their eligibility into the [iMac Seagate HDD Recall](http://www.apple.com/support/imac-harddrive/).
 
 3. margarita
-	 * A startup script for the margarita webinterface, specifically for RHEL flavours. When put into /etc/init.d it can be configured with chkconfig.
+   * A startup script for the margarita webinterface, specifically for RHEL flavours. When put into /etc/init.d it can be configured with chkconfig.
 
 4. network_avail.sh
-	 * A simple bash script that checks if a network connection is available by looking to see if there are any non-loopback interfaces. Useful to use when another script needs an active connection to work.
+   * A simple bash script that checks if a network connection is available by looking to see if there are any non-loopback interfaces. Useful to use when another script needs an active connection to work.
 
 5. prsync_transfer
-	 * An rsync wrapper that will transfer all alpha characters from the source folder in parallel (batches of 4).
-	   It will transfer everything else serially:
-		   * non-alpha characters,
-		   * files/folders with leading whitespaces,
-		   * and files/folders that are hidden
-	   For more information see [here](http://rileyshott.wordpress.com/2012/12/03/maclinux-parallel-rsync-utility).
+   * An rsync wrapper that will transfer all alpha characters from the source folder in parallel (batches of 4).
+     It will transfer everything else serially:
+       * non-alpha characters,
+       * files/folders with leading whitespaces,
+       * and files/folders that are hidden
+     For more information see [here](http://rileyshott.wordpress.com/2012/12/03/maclinux-parallel-rsync-utility).
 
 6. warranty.rb
    * Checks whether or not the given serial(s) are covered under the AppleCare Protection Plan. This is just a quick script to demonstrate that you can get a JSON formatted response with Applecare information.
@@ -41,17 +41,22 @@ Admin Scripts
     * Tar up each dump and its checksum,
     * (Optional toggle) Purge all but the last dump of the previous month when a new months starts.
   * For more information see [here](http://rileyshott.wordpress.com/2013/11/19/linuxmac-backing-up-drupal-databases).
- 
+
 11. msdw (mysqldump wrapper)
   * A wrapper for the mysqldump command. Takes two or three parameters: the database(s) to dump, a dump directory, and an archive toggle.
-  * You can also pass in options for the mysqldump command (ex: MySQL user, and password):
-    * Usage: ./msdw --databases database1,database2 --dump-location /path [-- mysqldump options] 
-    * ./msdw -d database1,database2,database3 -p /path/to/store/dumps -a -- -u mysql_user --password=itsasecret --single-transaction  
+  * You can also pass in options to the mysqldump command (ex: MySQL user, and password):
+    * Usage: ./msdw --databases database1,database2 --dump-path /path [-a] [-- mysqldump options]
+    * ```./msdw -d database1,database2,database3 -p /path/to/store/dumps -a -- -u mysql_user --password=itsasecret --single-transaction```
   * Order of operations:
     * Dump the databases given,
     * Create an md5 checksum of each dump and write it to a file,
     * Tar up each dump and its checksum,
     * (Optional toggle) Purge all but the last dump of the previous month when a new months starts.
+
+12. wpb (WordPress backup)
+  * A utility to backup your WordPress site & database. As with msdw, you can pass in options to the mysqldump command.
+  * Usage: ./wpb --database database_name --dump-path /path [-a] [-- mysqldump options]
+  * ```./wpb -d wordpress -p /backups -a -- -u backupuser --password=foryoureyesonly```
 
 License Terms
 =============
