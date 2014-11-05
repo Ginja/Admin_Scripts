@@ -11,7 +11,7 @@
 
 require 'fileutils'
 
-icon_helper        = '/Applications/Google Drive.app/Contents/Resources/Google Drive Icon Helper'
+icon_helper        = '/Applications/Google Drive.app/Contents/Helpers/Google Drive Icon Helper'
 icon_helper_path   = '/Library/PrivilegedHelperTools'
 icon_helper_script = "#{icon_helper_path}/Google Drive Icon Helper"
 
