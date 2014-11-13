@@ -1,0 +1,95 @@
+#!/usr/bin/env ruby
+
+# Author: Riley Shott
+# Date: Nov 13, 2014
+
+require 'optparse'
+
+###
+# METHODS
+###
+
+def sanity_checks(options)
+  raise "#{options[:path]} does not appear to be a directory" unless File.directory? options[:path]
+  Dir.chdir options[:path]
+  
+  check = {}
+  error_messages = []
+
+  check['git'] = system 'bash', '-c', 'which git &> /dev/null'
+  check['gitrepo'] = system 'bash', '-c', 'git status &> /dev/null'
+
+  error_messages << "This script requires #{key}. Please ensure it's installed and in your PATH." if check['git'] == false
+  error_messages << "#{options[:path]} doesn't seem to be a git repo" if check['gitrepo'] == false
+  
+  unless error_messages.empty?
+    puts error_messages
+    exit 1
+  end
+end
+
+###
+# ARGUMENT PARSING
+###
+
+options = {}
+
+optparse = OptionParser.new do |opts|
+  opts.banner = "Usage: #{__FILE__} --path /git/repo --commit hashid --author 'Some User <email@domain.com>'"
+
+  opts.separator ""
+  opts.separator "Specific options:"
+
+  opts.on("-p", "--path [/git/repo]", "The location of the git repo.") do |name|
+    options[:path] = name
+  end
+
+  opts.on("-c", "--commit [hashid]", "The hash of the commit BEFORE where you want to start ammending.") do |name|
+    options[:commit] = name
+  end
+
+  opts.on("-a", "--author ['Some User <email@domain.com>']", "The author string you want everything to be changed to.") do |owner|
+    options[:author] = owner
+  end
+
+  opts.on_tail( '-h', '--help', 'Display this screen' ) do
+    puts opts
+    exit
+  end
+end
+
+begin
+  optparse.parse!
+  mandatory = [:path, :commit, :author]
+  missing = mandatory.select{ |param| options[param].nil? }
+  unless missing.empty?
+    puts "Missing options: #{missing.join(', ')}"
+    puts optparse
+    exit
+  end
+rescue OptionParser::MissingArgument
+  puts $!.to_s
+  puts optparse
+  exit 1
+rescue OptionParser::InvalidOption => e
+  puts e.to_s
+  exit 1
+end
+
+###
+# MAIN
+###
+
+begin
+  sanity_checks(options)
+  Dir.chdir options[:path]
+  
+  if system "git rebase -i -p #{options[:commit]}"
+    while File.directory? '.git/rebase-merge' do
+      %x{git commit --amend --author '#{options[:author]}' -F .git/rebase-merge/message && git rebase --continue}
+    end
+  end
+rescue => e
+  puts "Error\n\nMessage:\n#{e.message}\n\nBacktrace:\n#{e.backtrace}"
+  exit 1
+end
